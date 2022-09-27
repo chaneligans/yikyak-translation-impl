@@ -17,3 +17,4 @@ Your tasks are as follows:
     - Connecting the service to the UI to show the result
 - Update the API calls to be asynchronous, using Kotlin coroutines and flows
 - Leave the code better than you found it - if there are places within the code that you feel could be improved, whether it’s a performance issue, architecture issue, or something else entirely, feel free to change it.
+# yikyak-translation-impl
