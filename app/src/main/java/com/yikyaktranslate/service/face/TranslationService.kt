@@ -15,10 +15,10 @@ import retrofit2.http.POST
 interface TranslationService {
 
     @GET("/languages")
-    fun getLanguages() : Call<List<Language>>
+    suspend fun getLanguages() : List<Language>
 
     @POST("/translate")
-    fun translate(@Body request: TranslationRequest) : Call<TranslationResponse>
+    suspend fun translate(@Body request: TranslationRequest) : TranslationResponse
 
     companion object {
         private const val BASE_URL = "https://libretranslate.de/" // this official mirror site doesn't require api key

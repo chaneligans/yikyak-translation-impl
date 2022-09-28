@@ -8,13 +8,13 @@ import androidx.lifecycle.*
 import com.yikyaktranslate.R
 import com.yikyaktranslate.model.Language
 import com.yikyaktranslate.model.TranslationRequest
-import com.yikyaktranslate.model.TranslationResponse
 import com.yikyaktranslate.service.face.TranslationService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import kotlinx.coroutines.launch
 
 class TranslateViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -25,11 +25,8 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
     private val sourceLanguageCode: String = application.getString(R.string.source_language_code)
 
     // List of Languages that we get from the back end
-    private val languages: MutableStateFlow<List<Language>> by lazy {
-        MutableStateFlow<List<Language>>(listOf()).also {
-            loadLanguages()
-        }
-    }
+    private val _languages = MutableStateFlow<List<Language>>(listOf())
+    private val languages = _languages.asStateFlow()
 
     // List of names of languages to display to user
     val languagesToDisplay = languages.map { it.map { language ->  language.name } }.asLiveData()
@@ -42,57 +39,56 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
     val textToTranslate = _textToTranslate.asLiveData()
 
     // Translated text
-    val translatedText = mutableStateOf("")
+    private val _translatedText = MutableStateFlow("")
+    val translatedText = _translatedText.asLiveData()
+
+    init {
+        // Loads the languages using a coroutine on a background thread
+        viewModelScope.launch {
+            loadLanguages()
+        }
+    }
 
     /**
      * Loads the languages from our service
      */
-    private fun loadLanguages() {
-        val call = translationService.getLanguages()
-        call.enqueue(object : Callback<List<Language>> {
-            override fun onResponse(
-                call: Call<List<Language>>,
-                response: Response<List<Language>>
-            ) {
-                response.body()?.let { responseBody ->
-                    languages.value = responseBody
-                }
-            }
-
-            override fun onFailure(call: Call<List<Language>>, t: Throwable) {
-                t.message?.let { Log.e(javaClass.name, it) }
-                languages.value = listOf()
-            }
-        })
+    private suspend fun loadLanguages() {
+        try {
+            _languages.value = translationService.getLanguages()
+        } catch (ex: Exception) {
+            Log.e(javaClass.name, "Failed to load languages", ex)
+            _languages.value = listOf()
+        }
     }
 
     /**
      * Translate the text from the source language to the target language using our service
      */
-    fun translateText() {
-        val targetLanguage = languages.value[targetLanguageIndex.value].code
+    private suspend fun loadTranslation() {
+        val targetLanguage = languages.value[targetLanguageIndex.value]
+        val targetLanguageCode = targetLanguage.code
         val request = TranslationRequest(
             textToTranslate = _textToTranslate.value.text,
             sourceLanguage = sourceLanguageCode,
-            targetLanguage = targetLanguage
+            targetLanguage = targetLanguageCode
         )
-        val call = translationService.translate(request)
 
-        call.enqueue(object : Callback<TranslationResponse> {
-            override fun onResponse(
-                call: Call<TranslationResponse>,
-                response: Response<TranslationResponse>
-            ) {
-                response.body()?.let { responseBody ->
-                    translatedText.value = responseBody.translatedText
-                }
-            }
+        try {
+            val translationResponse = translationService.translate(request)
+            _translatedText.value = translationResponse.translatedText
+        } catch (ex: Exception) {
+            Log.e(javaClass.name, "Failed to translate text", ex)
+            _translatedText.value = ""
+        }
+    }
 
-            override fun onFailure(call: Call<TranslationResponse>, t: Throwable) {
-                t.message?.let { Log.e(javaClass.name, it) }
-                translatedText.value = ""
-            }
-        })
+    /**
+     * Translates the text on the IO thread
+     */
+    fun translateText() {
+        CoroutineScope(Dispatchers.IO).launch {
+            loadTranslation()
+        }
     }
 
     /**

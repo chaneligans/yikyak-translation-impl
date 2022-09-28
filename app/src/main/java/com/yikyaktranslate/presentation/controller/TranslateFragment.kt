@@ -32,7 +32,7 @@ class TranslateFragment : Fragment() {
                     )
                     val languages by translateViewModel.languagesToDisplay.observeAsState(initial = listOf())
                     val targetLanguageIndex by translateViewModel.targetLanguageIndex
-                    val translatedText by translateViewModel.translatedText
+                    val translatedText by translateViewModel.translatedText.observeAsState(initial = "")
 
                     // Create Compose view
                     TranslateView(
