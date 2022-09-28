@@ -21,9 +21,6 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
     // Connection to the back end translation service
     private val translationService = TranslationService.create()
 
-    // Code for the source language that we are translating from; currently hardcoded to English
-    private val sourceLanguageCode: String = application.getString(R.string.source_language_code)
-
     // List of Languages that we get from the back end
     private val _languages = MutableStateFlow<List<Language>>(listOf())
     private val languages = _languages.asStateFlow()
@@ -31,7 +28,10 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
     // List of names of languages to display to user
     val languagesToDisplay = languages.map { it.map { language ->  language.name } }.asLiveData()
 
-    // Index within languages/languagesToDisplay that the user has selected
+    // Index within languages/languagesToDisplay that the user has selected as the source language
+    val sourceLanguageIndex = mutableStateOf(0)
+
+    // Index within languages/languagesToDisplay that the user has selected as the target language
     val targetLanguageIndex = mutableStateOf(0)
 
     // Text that the user has input to be translated
@@ -65,8 +65,11 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
      * Translate the text from the source language to the target language using our service
      */
     private suspend fun loadTranslation() {
+        val sourceLanguage = languages.value[sourceLanguageIndex.value]
+        val sourceLanguageCode = sourceLanguage.code
         val targetLanguage = languages.value[targetLanguageIndex.value]
         val targetLanguageCode = targetLanguage.code
+
         val request = TranslationRequest(
             textToTranslate = _textToTranslate.value.text,
             sourceLanguage = sourceLanguageCode,
@@ -98,6 +101,15 @@ class TranslateViewModel(application: Application) : AndroidViewModel(applicatio
      */
     fun onInputTextChange(newText: TextFieldValue) {
         _textToTranslate.value = newText
+    }
+
+    /**
+     * Updates the selected source language when the user selects a new language
+     *
+     * @param newLanguageIndex Represents the index for the chosen language in the list of languages
+     */
+    fun onSourceLanguageChange(newLanguageIndex: Int) {
+        sourceLanguageIndex.value = newLanguageIndex
     }
 
     /**

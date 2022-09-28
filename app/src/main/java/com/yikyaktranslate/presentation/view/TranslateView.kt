@@ -22,7 +22,9 @@ fun TranslateView(
     inputText: TextFieldValue,
     onInputChange: (TextFieldValue) -> Unit,
     languages: List<String>?,
+    sourceLanguageIndex: Int,
     targetLanguageIndex: Int,
+    onSourceLanguageSelected: (Int) -> Unit,
     onTargetLanguageSelected: (Int) -> Unit,
     onTranslateClick: () -> Unit,
     translatedText: String
@@ -34,6 +36,7 @@ fun TranslateView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = spacedBy(10.dp)
     ) {
+        // Text boxes
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
@@ -58,12 +61,13 @@ fun TranslateView(
             )
         }
 
+        // Language drop downs + text
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            // "Translate to: " prompt label
-            Text(stringResource(R.string.language_selection_prompt))
+            // "Translate from: " prompt label
+            Text(stringResource(R.string.language_selection_source_prompt))
 
             Spacer(Modifier.size(5.dp))
 
@@ -74,8 +78,30 @@ fun TranslateView(
                 // Creates the dropdown list of languages to select from
                 LanguageDropDown(
                     languages = languages,
-                    targetLanguageIndex = targetLanguageIndex,
-                    onTargetLanguageSelected = onTargetLanguageSelected
+                    languageIndex = sourceLanguageIndex,
+                    onLanguageSelected = onSourceLanguageSelected
+                )
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            // "Translate to: " prompt label
+            Text(stringResource(R.string.language_selection_target_prompt))
+
+            Spacer(Modifier.size(5.dp))
+
+            if (languages.isNullOrEmpty()) {
+                // Placeholder text if we don't have languages for the dropdown
+                Text(stringResource(R.string.language_selection_placeholder))
+            } else {
+                // Creates the dropdown list of languages to select from
+                LanguageDropDown(
+                    languages = languages,
+                    languageIndex = targetLanguageIndex,
+                    onLanguageSelected = onTargetLanguageSelected
                 )
             }
         }
@@ -90,8 +116,8 @@ fun TranslateView(
 @Composable
 fun LanguageDropDown(
     languages: List<String>,
-    targetLanguageIndex: Int,
-    onTargetLanguageSelected: (Int) -> Unit
+    languageIndex: Int,
+    onLanguageSelected: (Int) -> Unit
 ) {
     // Keeps track of whether or not the list of languages is expanded
     var expandLanguageList by remember { mutableStateOf(false) }
@@ -100,7 +126,7 @@ fun LanguageDropDown(
         // Shows currently selected language and opens dropdown menu
         Text(
             modifier = Modifier.clickable { expandLanguageList = true },
-            text = languages[targetLanguageIndex]
+            text = languages[languageIndex]
         )
 
         // Dropdown menu to select a language to translate to
@@ -112,7 +138,7 @@ fun LanguageDropDown(
             languages.forEachIndexed { index, language ->
                 DropdownMenuItem(
                     onClick = {
-                        onTargetLanguageSelected(index)
+                        onLanguageSelected(index)
                         expandLanguageList = false
                     }
                 ) {
